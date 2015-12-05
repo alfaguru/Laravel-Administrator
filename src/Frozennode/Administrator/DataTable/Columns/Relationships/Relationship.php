@@ -96,7 +96,7 @@ class Relationship extends Column {
 		//one element of the relationship query's wheres is always useless (it will say pivot_table.other_id is null)
 		//depending on whether or not softdeletes are enabled on the other model, this will be in either position 0
 		//or 1 of the wheres array
-		array_splice($query->wheres, (in_array('Illuminate\Database\Eloquent\SoftDeletingTrait', class_uses($relationshipModel)) ? 1 : 0), 1);
+		array_splice($query->wheres, (in_array('Illuminate\Database\Eloquent\SoftDeletingTrait', self::class_uses_deep($relationshipModel)) ? 1 : 0), 1);
 
 		//iterate over the wheres to properly alias the columns
 		foreach ($query->wheres as &$where)
@@ -182,4 +182,27 @@ class Relationship extends Column {
 		return $query;
 	}
 
+	public static function class_uses_deep($class, $autoload = true)
+	{
+		$traits = [];
+
+		// Get traits of all parent classes
+		do {
+			$traits = array_merge(class_uses($class, $autoload), $traits);
+		} while ($class = get_parent_class($class));
+
+		// Get traits of all parent traits
+		$traitsToSearch = $traits;
+		while (!empty($traitsToSearch)) {
+			$newTraits = class_uses(array_pop($traitsToSearch), $autoload);
+			$traits = array_merge($newTraits, $traits);
+			$traitsToSearch = array_merge($newTraits, $traitsToSearch);
+		};
+
+		foreach ($traits as $trait => $same) {
+			$traits = array_merge(class_uses($trait, $autoload), $traits);
+		}
+
+		return array_unique($traits);
+	}
 }
